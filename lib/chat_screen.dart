@@ -1,16 +1,27 @@
 import 'package:flutter/material.dart';
 import 'api_service.dart';
+import 'textbook.dart'; // This file contains the textbook content
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
 
   @override
-  _ChatScreenState createState() => _ChatScreenState();
+  ChatScreenState createState() => ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
+class ChatScreenState extends State<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
   List<Map<String, dynamic>> messages = [];
+
+  // Function to find relevant content
+  String findRelevantText(String query) {
+    for (var page in textbookContent) {
+      if (page.toLowerCase().contains(query.toLowerCase())) {
+        return page; // Return the first matching content
+      }
+    }
+    return ""; // No match found
+  }
 
   void sendMessage() async {
     String userMessage = _controller.text.trim();
@@ -22,17 +33,30 @@ class _ChatScreenState extends State<ChatScreen> {
 
     _controller.clear();
 
-    String botResponse = await GroqService.sendMessage(userMessage);
+    // Step 1: Try to find relevant content in the book
+    String textbookResponse = findRelevantText(userMessage);
 
-    setState(() {
-      messages.add({"text": botResponse, "isUser": false});
-    });
+    if (textbookResponse.isNotEmpty) {
+      // Step 2: Summarize the content while maintaining textbook language level
+      String summarizedText = await GroqService.summarizeText(textbookResponse);
+
+      setState(() {
+        messages.add({"text": summarizedText, "isUser": false});
+      });
+    } else {
+      // Step 3: If no match is found, ask Groq API to answer
+      String botResponse = await GroqService.sendMessage(userMessage);
+
+      setState(() {
+        messages.add({"text": botResponse, "isUser": false});
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Groq AI Chat")),
+      appBar: AppBar(title: const Text("Chemistry Textbook Chat")),
       body: Column(
         children: [
           Expanded(
@@ -44,8 +68,9 @@ class _ChatScreenState extends State<ChatScreen> {
                       ? Alignment.centerRight
                       : Alignment.centerLeft,
                   child: Container(
-                    margin: EdgeInsets.symmetric(vertical: 4, horizontal: 10),
-                    padding: EdgeInsets.all(10),
+                    margin:
+                        const EdgeInsets.symmetric(vertical: 4, horizontal: 10),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
                       color: messages[index]["isUser"]
                           ? Colors.blueAccent
@@ -65,20 +90,20 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
           Padding(
-            padding: EdgeInsets.all(8),
+            padding: const EdgeInsets.all(8),
             child: Row(
               children: [
                 Expanded(
                   child: TextField(
                     controller: _controller,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       hintText: "Type a message...",
                       border: OutlineInputBorder(),
                     ),
                   ),
                 ),
                 IconButton(
-                  icon: Icon(Icons.send),
+                  icon: const Icon(Icons.send),
                   onPressed: sendMessage,
                 ),
               ],
