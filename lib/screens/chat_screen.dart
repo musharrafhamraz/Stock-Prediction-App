@@ -1,11 +1,87 @@
-import 'package:chatbot/services/api_service.dart';
+// import 'package:chatbot/services/api_service.dart';
+// import 'package:flutter/material.dart';
+// import '../widgets/chat_bubble.dart';
+
+// class ChatScreen extends StatefulWidget {
+//   final int classNumber;
+
+//   const ChatScreen({super.key, required this.classNumber});
+
+//   @override
+//   _ChatScreenState createState() => _ChatScreenState();
+// }
+
+// class _ChatScreenState extends State<ChatScreen> {
+//   final TextEditingController _controller = TextEditingController();
+//   List<Map<String, String>> messages = [];
+//   final GroqService _groqService = GroqService();
+
+//   void sendMessage() async {
+//     if (_controller.text.isEmpty) return;
+
+//     setState(() {
+//       messages.add({"sender": "user", "text": _controller.text});
+//     });
+
+//     String response =
+//         await _groqService.getResponse(widget.classNumber, _controller.text);
+
+//     setState(() {
+//       messages.add({"sender": "bot", "text": response});
+//     });
+
+//     _controller.clear();
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(title: Text("Class ${widget.classNumber} Chat")),
+//       body: Column(
+//         children: [
+//           Expanded(
+//             child: ListView.builder(
+//               itemCount: messages.length,
+//               itemBuilder: (context, index) {
+//                 return ChatBubble(
+//                   text: messages[index]["text"]!,
+//                   isUser: messages[index]["sender"] == "user",
+//                 );
+//               },
+//             ),
+//           ),
+//           Padding(
+//             padding: const EdgeInsets.all(8.0),
+//             child: Row(
+//               children: [
+//                 Expanded(
+//                   child: TextField(
+//                     controller: _controller,
+//                     decoration: InputDecoration(
+//                       hintText: "Ask something...",
+//                       border: OutlineInputBorder(),
+//                     ),
+//                   ),
+//                 ),
+//                 IconButton(icon: Icon(Icons.send), onPressed: sendMessage),
+//               ],
+//             ),
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+// }
+
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
+import '../services/api_service.dart';
 import '../widgets/chat_bubble.dart';
 
 class ChatScreen extends StatefulWidget {
   final int classNumber;
 
-  ChatScreen({required this.classNumber});
+  const ChatScreen({super.key, required this.classNumber});
 
   @override
   _ChatScreenState createState() => _ChatScreenState();
@@ -13,36 +89,82 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
-  List<Map<String, String>> messages = [];
   final GroqService _groqService = GroqService();
+  List<Map<String, String>> messages = [];
+  bool isLoading = false; // For showing typing animation
 
+  // void sendMessage() async {
+  //   String userMessage = _controller.text.trim();
+  //   if (userMessage.isEmpty) return;
+
+  //   setState(() {
+  //     messages.add({"sender": "user", "text": userMessage});
+  //     isLoading = true; // Show typing animation
+  //   });
+
+  //   _controller.clear();
+
+  //   // Fetch response from LLM (Groq API)
+  //   String response =
+  //       await _groqService.getResponse(widget.classNumber, userMessage);
+
+  //   setState(() {
+  //     messages.add({"sender": "bot", "text": response});
+  //     isLoading = false; // Hide typing animation
+  //   });
+  // }
   void sendMessage() async {
-    if (_controller.text.isEmpty) return;
+    String userMessage = _controller.text.trim();
+    if (userMessage.isEmpty) return;
 
     setState(() {
-      messages.add({"sender": "user", "text": _controller.text});
-    });
-
-    String response =
-        await _groqService.getResponse(widget.classNumber, _controller.text);
-
-    setState(() {
-      messages.add({"sender": "bot", "text": response});
+      messages.add({"sender": "user", "text": userMessage});
+      isLoading = true; // Show typing animation
     });
 
     _controller.clear();
+
+    // Fetch response from LLM (Groq API)
+    String rawResponse =
+        await _groqService.getResponse(widget.classNumber, userMessage);
+
+    // ✅ Extract actual answer by removing <think>...</think> parts
+    String filteredResponse = _extractActualAnswer(rawResponse);
+
+    setState(() {
+      messages.add({"sender": "bot", "text": filteredResponse});
+      isLoading = false; // Hide typing animation
+    });
+  }
+
+  /// **📌 Function to remove <think>...</think> part from response**
+  String _extractActualAnswer(String response) {
+    RegExp regex = RegExp(r"<think>.*?</think>", dotAll: true);
+    return response.replaceAll(regex, "").trim();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Class ${widget.classNumber} Chat")),
+      backgroundColor: Colors.blue[50], // Light school-themed background
+      appBar: AppBar(
+        title: Text(
+          "Class ${widget.classNumber}",
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.blueAccent,
+      ),
       body: Column(
         children: [
+          /// 🗨️ Chat Area
           Expanded(
             child: ListView.builder(
-              itemCount: messages.length,
+              padding: const EdgeInsets.all(16),
+              itemCount: messages.length + (isLoading ? 1 : 0),
               itemBuilder: (context, index) {
+                if (index == messages.length && isLoading) {
+                  return _buildTypingIndicator(); // Show animation
+                }
                 return ChatBubble(
                   text: messages[index]["text"]!,
                   isUser: messages[index]["sender"] == "user",
@@ -50,24 +172,56 @@ class _ChatScreenState extends State<ChatScreen> {
               },
             ),
           ),
+
+          /// 📩 Input Field
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             child: Row(
               children: [
                 Expanded(
                   child: TextField(
                     controller: _controller,
                     decoration: InputDecoration(
-                      hintText: "Ask something...",
-                      border: OutlineInputBorder(),
+                      hintText: "Ask me anything...",
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(25),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                          vertical: 14, horizontal: 20),
                     ),
                   ),
                 ),
-                IconButton(icon: Icon(Icons.send), onPressed: sendMessage),
+                const SizedBox(width: 10),
+                GestureDetector(
+                  onTap: sendMessage,
+                  child: const CircleAvatar(
+                    backgroundColor: Colors.blueAccent,
+                    radius: 24,
+                    child: Icon(Icons.send, color: Colors.white),
+                  ),
+                ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// 🎥 **Typing Animation (Lottie)**
+  Widget _buildTypingIndicator() {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Lottie.asset(
+          'lib/assets/robot_typing.json', // Make sure you have this Lottie JSON
+          width: 150,
+          height: 100,
+        ),
       ),
     );
   }
