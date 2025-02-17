@@ -1,40 +1,11 @@
-// import 'package:flutter/material.dart';
-
-// class ChatBubble extends StatelessWidget {
-//   final String text;
-//   final bool isUser;
-
-//   const ChatBubble({super.key, required this.text, required this.isUser});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Align(
-//       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-//       child: Container(
-//         margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-//         padding: const EdgeInsets.all(12),
-//         decoration: BoxDecoration(
-//           color: isUser ? Colors.blue : Colors.grey[300],
-//           borderRadius: BorderRadius.circular(12),
-//         ),
-//         child: Text(text,
-//             style: TextStyle(color: isUser ? Colors.white : Colors.black)),
-//       ),
-//     );
-//   }
-// }
-
 import 'package:flutter/material.dart';
 
 class ChatBubble extends StatelessWidget {
   final String text;
   final bool isUser;
 
-  /// **📌 Dummy Profile Images (Replace with your actual images)**
-  final String userImage =
-      "lib/assets/male_std.jpg"; // Replace with actual user image
-  final String botImage =
-      "lib/assets/robot.jpg"; // Replace with actual bot image
+  final String userImage = "lib/assets/male_std.jpg";
+  final String botImage = "lib/assets/robot.jpg";
 
   const ChatBubble({super.key, required this.text, required this.isUser});
 
