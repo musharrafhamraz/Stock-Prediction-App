@@ -145,10 +145,10 @@ class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key, required this.classNumber, this.chatId});
 
   @override
-  _ChatScreenState createState() => _ChatScreenState();
+  ChatScreenState createState() => ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
+class ChatScreenState extends State<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
   final GroqService _groqService = GroqService();
   List<Map<String, String>> messages = [];
